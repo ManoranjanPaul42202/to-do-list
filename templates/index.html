@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Admission Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Student Admission Prediction</h1>
+            <p class="subtitle">Predict your admission chances with advanced AI models</p>
+        </div>
+        
+        <div class="form-container">
+            <form action="/predict" method="post" id="predictionForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="cet_score">
+                            <span class="label-icon">📊</span>
+                            CET Score
+                        </label>
+                        <input type="number" 
+                               id="cet_score" 
+                               name="cet_score" 
+                               min="0" 
+                               max="100" 
+                               step="0.01" 
+                               placeholder="Enter CET score (0-100)"
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="jee_score">
+                            <span class="label-icon">🎯</span>
+                            JEE Score
+                        </label>
+                        <input type="number" 
+                               id="jee_score" 
+                               name="jee_score" 
+                               min="0" 
+                               max="100" 
+                               step="0.01" 
+                               placeholder="Enter JEE score (0-100)"
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="caste">
+                            <span class="label-icon">👥</span>
+                            Category
+                        </label>
+                        <select id="caste" name="caste" required>
+                            <option value="" disabled selected>Select your category</option>
+                            <option value="OPEN">General (OPEN)</option>
+                            <option value="OBC">Other Backward Classes (OBC)</option>
+                            <option value="SC">Scheduled Caste (SC)</option>
+                            <option value="ST">Scheduled Tribe (ST)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="annual_income">
+                            <span class="label-icon">💰</span>
+                            Annual Income (₹)
+                        </label>
+                        <input type="number" 
+                               id="annual_income" 
+                               name="annual_income" 
+                               min="0" 
+                               placeholder="Enter annual family income"
+                               required>
+                    </div>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label>
+                        <span class="label-icon">✅</span>
+                        Eligibility Options
+                    </label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="ews" name="ews" value="1">
+                            <label for="ews">
+                                <strong>EWS (Economically Weaker Section)</strong><br>
+                                <small>For families with income below ₹8 lakhs</small>
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="tfws" name="tfws" value="1">
+                            <label for="tfws">
+                                <strong>TFWS (Tuition Fee Waiver Scheme)</strong><br>
+                                <small>Financial assistance for eligible students</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">
+                    🚀 Predict My Admission
+                </button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing your profile...</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Professional form enhancement script
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('predictionForm');
+            const submitBtn = document.querySelector('.submit-btn');
+            const loadingElement = document.getElementById('loading');
+            
+            // Form validation with professional feedback
+            const inputs = document.querySelectorAll('input[required], select[required]');
+            
+            inputs.forEach(input => {
+                input.addEventListener('blur', validateInput);
+                input.addEventListener('input', clearValidationMessage);
+            });
+            
+            function validateInput(e) {
+                const input = e.target;
+                const formGroup = input.closest('.form-group');
+                
+                // Remove existing validation styling
+                formGroup.classList.remove('error', 'success');
+                
+                if (!input.checkValidity()) {
+                    formGroup.classList.add('error');
+                    showValidationMessage(input, input.validationMessage);
+                } else if (input.value) {
+                    formGroup.classList.add('success');
+                }
+            }
+            
+            function clearValidationMessage(e) {
+                const input = e.target;
+                const formGroup = input.closest('.form-group');
+                const existingMessage = formGroup.querySelector('.validation-message');
+                
+                if (existingMessage) {
+                    existingMessage.remove();
+                }
+                formGroup.classList.remove('error');
+            }
+            
+            function showValidationMessage(input, message) {
+                const formGroup = input.closest('.form-group');
+                let validationMsg = formGroup.querySelector('.validation-message');
+                
+                if (!validationMsg) {
+                    validationMsg = document.createElement('div');
+                    validationMsg.className = 'validation-message';
+                    formGroup.appendChild(validationMsg);
+                }
+                
+                validationMsg.textContent = message;
+            }
+            
+            // Enhanced form submission with professional loading
+            form.addEventListener('submit', function(e) {
+                // Validate all fields before submission
+                let isValid = true;
+                inputs.forEach(input => {
+                    if (!input.checkValidity()) {
+                        isValid = false;
+                        validateInput({ target: input });
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Show professional loading animation
+                submitBtn.style.display = 'none';
+                loadingElement.style.display = 'block';
+                
+                // Convert checkboxes to 1/0 values for backend
+                const ewsCheckbox = document.getElementById('ews');
+                const tfwsCheckbox = document.getElementById('tfws');
+                
+                // Create hidden inputs for the 1/0 values
+                const ewsHidden = document.createElement('input');
+                ewsHidden.type = 'hidden';
+                ewsHidden.name = 'ews';
+                ewsHidden.value = ewsCheckbox.checked ? '1' : '0';
+                
+                const tfwsHidden = document.createElement('input');
+                tfwsHidden.type = 'hidden';
+                tfwsHidden.name = 'tfws';
+                tfwsHidden.value = tfwsCheckbox.checked ? '1' : '0';
+                
+                // Remove the checkbox name attributes to avoid duplication
+                ewsCheckbox.removeAttribute('name');
+                tfwsCheckbox.removeAttribute('name');
+                
+                // Append hidden inputs
+                this.appendChild(ewsHidden);
+                this.appendChild(tfwsHidden);
+            });
+            
+            // Simple interactive feedback - no animations
+            inputs.forEach(element => {
+                element.addEventListener('focus', function() {
+                    // Focus styling handled by CSS only
+                });
+                
+                element.addEventListener('blur', function() {
+                    // Blur styling handled by CSS only
+                });
+            });
+            
+            // Auto-complete suggestions for income ranges
+            const incomeInput = document.getElementById('annual_income');
+            if (incomeInput) {
+                incomeInput.addEventListener('input', function(e) {
+                    const value = parseInt(e.target.value);
+                    const ewsCheckbox = document.getElementById('ews');
+                    
+                    // Auto-suggest & enforce EWS based on income threshold (₹8 lakh)
+                    if (!isNaN(value) && value > 800000) {
+                        ewsCheckbox.checked = false;
+                        ewsCheckbox.disabled = true;
+                        ewsCheckbox.setAttribute('aria-disabled', 'true');
+                        ewsCheckbox.title = 'Disabled: Annual income exceeds ₹8,00,000';
+                        ewsCheckbox.closest('.checkbox-item').style.borderColor = 'var(--border-color)';
+                    } else if (!isNaN(value) && value > 0) {
+                        ewsCheckbox.disabled = false;
+                        ewsCheckbox.removeAttribute('aria-disabled');
+                        ewsCheckbox.removeAttribute('title');
+                        ewsCheckbox.checked = true;
+                        ewsCheckbox.closest('.checkbox-item').style.borderColor = 'var(--accent-color)';
+                    } else {
+                        // No value or invalid; reset to enabled unchecked
+                        ewsCheckbox.disabled = false;
+                        ewsCheckbox.removeAttribute('aria-disabled');
+                        ewsCheckbox.removeAttribute('title');
+                        ewsCheckbox.checked = false;
+                        ewsCheckbox.closest('.checkbox-item').style.borderColor = 'var(--border-color)';
+                    }
+                });
+
+                // Initialize state on load
+                const initialVal = parseInt(incomeInput.value);
+                const ewsCheckboxInit = document.getElementById('ews');
+                if (!isNaN(initialVal) && initialVal > 800000) {
+                    ewsCheckboxInit.checked = false;
+                    ewsCheckboxInit.disabled = true;
+                    ewsCheckboxInit.setAttribute('aria-disabled', 'true');
+                    ewsCheckboxInit.title = 'Disabled: Annual income exceeds ₹8,00,000';
+                    ewsCheckboxInit.closest('.checkbox-item').style.borderColor = 'var(--border-color)';
+                }
+            }
+            
+            // Professional progress indicator
+            let filledFields = 0;
+            const totalFields = inputs.length;
+            
+            function updateProgress() {
+                filledFields = Array.from(inputs).filter(input => input.value && input.checkValidity()).length;
+                const progress = (filledFields / totalFields) * 100;
+                
+                // You could add a progress bar here if needed
+                if (progress === 100) {
+                    submitBtn.style.background = 'var(--gradient-accent)';
+                    submitBtn.style.transform = 'scale(1.02)';
+                } else {
+                    submitBtn.style.background = 'var(--gradient-primary)';
+                    submitBtn.style.transform = 'scale(1)';
+                }
+            }
+            
+            inputs.forEach(input => {
+                input.addEventListener('input', updateProgress);
+                input.addEventListener('change', updateProgress);
+            });
+            
+            // Initialize progress
+            updateProgress();
+        });
+    </script>
+</body>
+
+</html>

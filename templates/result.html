@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admission Prediction Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Admission Prediction Result</h1>
+            <p class="subtitle">Your personalized admission analysis</p>
+        </div>
+        
+        <div class="result-container">
+            <div class="result-header">
+                <h2>Your Prediction Results</h2>
+                {% if aggregate_confidence is not none %}
+                <p class="result-summary">
+                    Overall confidence: <strong>{{ '%.1f'|format(aggregate_confidence) }}%</strong>
+                    • Model agreement: <strong>{{ agree_models }}/{{ model_confidences|length }}</strong>
+                </p>
+                {% endif %}
+            </div>
+            
+            <div class="result-card">
+                <div class="result-item">
+                    <span class="result-icon">🏫</span>
+                    <span>Branch:</span>
+                    <span class="result-value">{{ branch }}</span>
+                </div>
+                
+                <div class="result-item">
+                    <span class="result-icon">🎯</span>
+                    <span>Admission Status:</span>
+                    <span class="result-value status-{{ status.lower() }}">{{ status }}</span>
+                </div>
+                
+                {% if reason %}
+                <div class="result-item">
+                    <span class="result-icon">📝</span>
+                    <span>Reason:</span>
+                    <span class="result-value">{{ reason }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="result-item">
+                    <span class="result-icon">💰</span>
+                    <span>Fees to Pay:</span>
+                    <span class="result-value">₹{{ "{:,}".format(fee_amount) }}</span>
+                </div>
+            </div>
+
+            {% if criteria_met %}
+            <div class="criteria-section">
+                <h3>✅ Decision Criteria Satisfied</h3>
+                <ul class="criteria-list">
+                    {% for item in criteria_met %}
+                    <li class="criteria-item">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if highlights %}
+            <div class="insights-section">
+                <h3>⭐ Highlights</h3>
+                <ul class="insights-list">
+                    {% for item in highlights %}
+                    <li class="insight-item positive">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if recommendations %}
+            <div class="insights-section">
+                <h3>🧭 Recommendations</h3>
+                <ul class="insights-list">
+                    {% for item in recommendations %}
+                    <li class="insight-item action">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>📈 Your Scores</h3>
+                    <canvas id="scoreChart" height="140"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>🤝 Model Agreement</h3>
+                    <canvas id="modelChart" height="140"></canvas>
+                </div>
+            </div>
+
+            <div class="confidence-section">
+                <h3>🔹 Individual Model Confidence Scores</h3>
+                <div class="confidence-list">
+                    {% for name, conf in model_confidences.items() %}
+                    <div class="confidence-item">
+                        <span class="confidence-name">{{ name.replace('_', ' ').title() }}</span>
+                        <span class="confidence-value">{{ conf }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="/" class="back-btn">🔄 Predict Again</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Add some animation to the results
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultItems = document.querySelectorAll('.result-item, .confidence-item');
+            resultItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(20px)';
+                    item.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, 50);
+                }, index * 100);
+            });
+            
+            // Add status-specific colors using CSS variables
+            const statusElement = document.querySelector('.result-value[class*="status-"]');
+            if (statusElement) {
+                const status = statusElement.textContent.toLowerCase();
+                if (status.includes('admitted')) {
+                    statusElement.style.background = 'rgba(16, 185, 129, 0.12)';
+                    statusElement.style.color = '#10b981';
+                    statusElement.style.padding = '8px 16px';
+                    statusElement.style.borderRadius = '20px';
+                    statusElement.style.fontWeight = '600';
+                    statusElement.style.border = '1px solid rgba(16, 185, 129, 0.35)';
+                } else if (status.includes('waitlist')) {
+                    statusElement.style.background = 'rgba(245, 158, 11, 0.12)';
+                    statusElement.style.color = '#f59e0b';
+                    statusElement.style.padding = '8px 16px';
+                    statusElement.style.borderRadius = '20px';
+                    statusElement.style.fontWeight = '600';
+                    statusElement.style.border = '1px solid rgba(245, 158, 11, 0.35)';
+                } else if (status.includes('rejected')) {
+                    statusElement.style.background = 'rgba(244, 63, 94, 0.12)';
+                    statusElement.style.color = '#f43f5e';
+                    statusElement.style.padding = '8px 16px';
+                    statusElement.style.borderRadius = '20px';
+                    statusElement.style.fontWeight = '600';
+                    statusElement.style.border = '1px solid rgba(244, 63, 94, 0.35)';
+                }
+            }
+        });
+
+        // Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            const scoreCtx = document.getElementById('scoreChart');
+            if (scoreCtx) {
+                new Chart(scoreCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['CET', 'JEE'],
+                        datasets: [{
+                            label: 'Score',
+                            data: [{{ cet_score|int }}, {{ jee_score|int }}],
+                            backgroundColor: ['#8b5cf6', '#10b981']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, max: 100 } }
+                    }
+                });
+            }
+
+            const modelCtx = document.getElementById('modelChart');
+            if (modelCtx) {
+                // Extract numbers from strings like "92.34% for Label"
+                const names = [
+                    {% for name, conf in model_confidences.items() %}'{{ name }}'{% if not loop.last %},{% endif %}{% endfor %}
+                ];
+                const values = [
+                    {% for name, conf in model_confidences.items() %}
+                        {% set pct = conf.split('%')[0] if '%' in conf else '0' %}
+                        {{ pct|float }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ];
+                new Chart(modelCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: names,
+                        datasets: [{
+                            label: 'Top confidence (%)',
+                            data: values,
+                            backgroundColor: '#a78bfa'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, max: 100 } }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
